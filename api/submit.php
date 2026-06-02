@@ -6,49 +6,21 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-// 1. Tenta carregar o mapa de clientes (se o arquivo existir)
-$configPath = __DIR__ . '/config_clientes.php';
-$clientes = file_exists($configPath) ? require $configPath : [];
+// Lendo as variáveis cadastradas no painel do Vercel
+$spreadsheetId       = getenv('GOOGLE_SHEET_ID');
+$serviceAccountEmail = getenv('GOOGLE_SERVICE_ACCOUNT_EMAIL');
+$privateKey          = getenv('GOOGLE_PRIVATE_KEY');
+$driveFolderId       = getenv('GOOGLE_DRIVE_FOLDER_ID'); // Nova variável adicionada
 
-$empresa_id = $_POST['empresa_id'] ?? '';
-
-// 2. Define o destino (Se achar o cliente no arquivo, usa ele. Se não achar, usa as variáveis do Vercel)
-if (!empty($empresa_id) && isset($clientes[$empresa_id])) {
-    $spreadsheetId  = $clientes[$empresa_id]['spreadsheet_id'];
-    $driveFolderId  = $clientes[$empresa_id]['drive_folder_id'] ?? '';
-    $emailRH        = $clientes[$empresa_id]['email_rh'] ?? '';
-    $nomeEmpresa    = $clientes[$empresa_id]['nome'];
-    
-    // Para a conta de serviço funcionar no modo multi-empresa, ela precisa usar a chave privada global do Vercel
-    $serviceAccountEmail = getenv('GOOGLE_SERVICE_ACCOUNT_EMAIL');
-    $privateKey          = getenv('GOOGLE_PRIVATE_KEY');
-} else {
-    // FALLBACK: Se não achar a empresa, usa tudo direto do painel do Vercel (Perfeito para o seu teste atual)
-    $spreadsheetId       = getenv('GOOGLE_SHEET_ID');
-    $serviceAccountEmail = getenv('GOOGLE_SERVICE_ACCOUNT_EMAIL');
-    $privateKey          = getenv('GOOGLE_PRIVATE_KEY');
-    
-    $driveFolderId       = ''; // Opcional no teste
-    $emailRH             = ''; // Opcional no teste
-    $nomeEmpresa         = 'Empresa de Teste Geral';
-}
-
-// 3. Validação de segurança das credenciais do Google
 if (empty($spreadsheetId) || empty($serviceAccountEmail) || empty($privateKey)) {
-    echo json_encode([
-        'success' => false, 
-        'message' => 'Configurações de credenciais do Google ausentes no painel do Vercel.'
-    ]);
+    echo json_encode(['success' => false, 'message' => 'Configurações do Google incompletas no Vercel.']);
     exit;
 }
 
-// Tratamento crucial para quebras de linha da Private Key no ambiente serverless da Vercel
 $privateKey = str_replace(['"', "'"], '', $privateKey);
 $privateKey = str_replace('\n', "\n", $privateKey);
 
-$resendApiKey = getenv('RESEND_API_KEY'); 
-
-// Captura e saneamento básico dos dados do formulário
+// Captura dos dados do formulário
 $identificacao = $_POST['identificacao'] ?? 'anonimo';
 $nome          = ($identificacao === 'anonimo') ? 'Anônimo' : ($_POST['nome'] ?? 'Anônimo');
 $contato       = ($identificacao === 'anonimo') ? 'Não informado' : ($_POST['contato'] ?? 'Não informado');
@@ -62,7 +34,7 @@ $data_hora     = date('d/m/Y H:i:s');
 $link_foto = 'Nenhuma foto enviada';
 
 // ============================================================
-// FUNÇÃO INTERNA: GERAR TOKEN OAUTH2 VIA CONTA DE SERVIÇO
+// GERAR TOKEN OAUTH2 MANUAL PARA CONTA DE SERVIÇO (PHP PURO)
 // ============================================================
 function getGoogleAccessToken($email, $privateKey) {
     $header = json_encode(['alg' => 'RS256', 'typ' => 'JWT']);
@@ -77,7 +49,6 @@ function getGoogleAccessToken($email, $privateKey) {
 
     $base64UrlHeader = str_replace(['+', '/', '='], ['-', '_', ''], base64_encode($header));
     $base64UrlPayload = str_replace(['+', '/', '='], ['-', '_', ''], base64_encode($payload));
-    
     $signatureInput = $base64UrlHeader . "." . $base64UrlPayload;
     
     if (!openssl_sign($signatureInput, $signature, $privateKey, 'SHA256')) {
@@ -102,22 +73,18 @@ function getGoogleAccessToken($email, $privateKey) {
     return $data['access_token'] ?? null;
 }
 
-// Solcita o Token de Acesso válido para o Google
 $accessToken = getGoogleAccessToken($serviceAccountEmail, $privateKey);
 
 if (!$accessToken) {
-    echo json_encode([
-        'success' => false,
-        'message' => 'Falha na autenticação JWT com a Conta de Serviço do Google. Verifique sua GOOGLE_PRIVATE_KEY.'
-    ]);
+    echo json_encode(['success' => false, 'message' => 'Falha na autenticação com o Google.']);
     exit;
 }
 
 // ============================================================
-// 1. ENVIAR FOTO PARA O GOOGLE DRIVE (Apenas se houver ID da pasta e arquivo)
+// 1. ENVIAR FOTO PARA O GOOGLE DRIVE
 // ============================================================
 if (!empty($driveFolderId) && isset($_FILES['foto']) && $_FILES['foto']['error'] === UPLOAD_ERR_OK) {
-    $fileTmpPath = $_FILES['foto']['tmp_name'];
+    $fileTmpPath = $_FILES['foto']['tmp_name']; // Corrigido de tmp_path para tmp_name
     $fileName    = $_FILES['foto']['name'];
     $fileType    = $_FILES['foto']['type'];
     
@@ -138,7 +105,7 @@ if (!empty($driveFolderId) && isset($_FILES['foto']) && $_FILES['foto']['error']
         
     $ch = curl_init('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart');
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, sprintf(CURLOPT_POST, true));
     curl_setopt($ch, CURLOPT_POSTFIELDS, $postData);
     curl_setopt($ch, CURLOPT_HTTPHEADER, [
         'Authorization: Bearer ' . $accessToken,
@@ -151,14 +118,18 @@ if (!empty($driveFolderId) && isset($_FILES['foto']) && $_FILES['foto']['error']
     $resDriveJson = json_decode($responseDrive, true);
     if (isset($resDriveJson['id'])) {
         $link_foto = 'https://drive.google.com/open?id=' . $resDriveJson['id'];
+    } else {
+        $link_foto = 'Erro ao fazer upload para o Drive: ' . ($resDriveJson['error']['message'] ?? 'Erro desconhecido');
     }
+} elseif (empty($driveFolderId)) {
+    $link_foto = 'Upload pulado: GOOGLE_DRIVE_FOLDER_ID não configurado no Vercel.';
 }
 
 // ============================================================
-// 2. SALVAR DADOS NO GOOGLE SHEETS (Seguro via Bearer Token)
+// 2. SALVAR DADOS NO GOOGLE SHEETS
 // ============================================================
 $values = [
-    [$protocolo, $data_hora, $nomeEmpresa, $identificacao, $nome, $contato, $categoria, $local, $urgencia, $descricao, $link_foto]
+    [$protocolo, $data_hora, 'Empresa de Teste Geral', $identificacao, $nome, $contato, $categoria, $local, $urgencia, $descricao, $link_foto]
 ];
 
 $payload = ['values' => $values];
@@ -175,49 +146,6 @@ curl_setopt($ch, CURLOPT_HTTPHEADER, [
 $responseSheets = curl_exec($ch);
 curl_close($ch);
 
-// ============================================================
-// 3. ENVIAR E-MAIL PARA O RH DA EMPRESA (Via API do Resend)
-// ============================================================
-if (!empty($resendApiKey) && !empty($emailRH)) {
-    $emailHtml = "
-    <h2>Novo Relato de Segurança Protocolado (NR-1)</h2>
-    <p><strong>Protocolo:</strong> {$protocolo}</p>
-    <p><strong>Data/Hora:</strong> {$data_hora}</p>
-    <p><strong>Urgência:</strong> " . strtoupper($urgencia) . "</p>
-    <hr>
-    <p><strong>Identificação:</strong> " . ($identificacao === 'anonimo' ? 'Anônimo' : 'Identificado') . "</p>
-    <p><strong>Nome do Relator:</strong> {$nome}</p>
-    <p><strong>Contato fornecido:</strong> {$contato}</p>
-    <p><strong>Natureza do Risco:</strong> {$categoria}</p>
-    <p><strong>Local/Setor do Fato:</strong> {$local}</p>
-    <hr>
-    <p><strong>Descrição do ocorrido:</strong><br>" . nl2br(htmlspecialchars($descricao)) . "</p>
-    <hr>
-    <p><strong>Link da Evidência (Google Drive):</strong> <a href='{$link_foto}'>{$link_foto}</a></p>
-    <br>
-    <p><small>Este é um e-mail automático gerado pelo Canal de Relatos NR-1.</small></p>
-    ";
-
-    $emailData = [
-        'from' => 'Canal NR-1 <relatos@seu-dominio-resend.com>', 
-        'to' => [$emailRH],
-        'subject' => "[Alerta {$urgencia}] Novo Relato SST - Protocolo {$protocolo}",
-        'html' => $emailHtml
-    ];
-
-    $ch = curl_init('https://api.resend.com/emails');
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_POST, true);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($emailData));
-    curl_setopt($ch, CURLOPT_HTTPHEADER, [
-        'Authorization: Bearer ' . $resendApiKey,
-        'Content-Type: application/json'
-    ]);
-    curl_exec($ch);
-    curl_close($ch);
-}
-
-// Retorna resposta definitiva de sucesso para o frontend
 echo json_encode([
     'success' => true,
     'protocolo' => $protocolo
