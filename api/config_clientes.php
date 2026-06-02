@@ -5,7 +5,7 @@ return [
     'empresa_a_123' => [
         'nome' => 'Empresa Alfa',
         'cnpj' => '11.222.333/0001-44',
-        'email_rh' => 'rh@empresaalfa.com.br', // <-- Novo campo
+        'email_rh' => 'rh@empresaalfa.com.br',
         'spreadsheet_id' => 'ID_DA_PLANILHA_DA_EMPRESA_ALFA',
         'drive_folder_id' => 'ID_DA_PASTA_DO_DRIVE_DA_EMPRESA_ALFA',
         'tema' => [
@@ -19,7 +19,7 @@ return [
     'empresa_b_456' => [
         'nome' => 'Indústrias Beta',
         'cnpj' => '55.666.777/0001-88',
-        'email_rh' => 'denuncias.rh@industriasbeta.com', // <-- Novo campo
+        'email_rh' => 'denuncias.rh@industriasbeta.com',
         'spreadsheet_id' => 'ID_DA_PLANILHA_DA_EMPRESA_BETA',
         'drive_folder_id' => 'ID_DA_PASTA_DO_DRIVE_DA_EMPRESA_BETA',
         'tema' => [

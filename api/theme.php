@@ -3,15 +3,35 @@
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
 
-// Como é um teste direto no Vercel, definimos as cores padrão do seu layout aqui
+ini_set('display_errors', 0);
+error_reporting(E_ALL);
+
+$configPath = __DIR__ . '/config_clientes.php';
+
+if (!file_exists($configPath)) {
+    echo json_encode(['success' => false, 'message' => 'Configuração não encontrada.']);
+    exit;
+}
+
+$clientes = require $configPath;
+$clienteId = $_GET['cliente'] ?? 'padrao';
+
+// Fallback: Se o cliente não existir, carrega a empresa_a_123 como padrão
+if (!isset($clientes[$clienteId])) {
+    $clienteId = 'empresa_a_123'; 
+}
+
+$dadosCliente = $clientes[$clienteId];
+
+// Envia o JSON perfeito para o script.js ler
 echo json_encode([
     'success' => true,
-    'nome' => 'Empresa de Teste NR-1',
-    'cnpj' => '00.000.000/0001-00',
-    'tema' => [
-        'primary' => '#E53E3E', // Vermelho AssinaPDF
-        'primary_dark' => '#C53030',
-        'primary_light' => 'rgba(229, 62, 62, 0.1)',
-        'primary_focus_shadow' => 'rgba(229, 62, 62, 0.15)'
+    'nome'    => $dadosCliente['nome'],
+    'cnpj'    => $dadosCliente['cnpj'],
+    'tema'    => [
+        'primary'              => $dadosCliente['tema']['primary'],
+        'primary_dark'         => $dadosCliente['tema']['primary_hover'],
+        'primary_light'        => $dadosCliente['tema']['accent'] . '1A', // Accent + 10% opacidade
+        'primary_focus_shadow' => $dadosCliente['tema']['primary'] . '33'  // Primary + 20% opacidade
     ]
 ]);
