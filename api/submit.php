@@ -6,24 +6,49 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-$clientes = require __DIR__ . '/config_clientes.php';
+// 1. Tenta carregar o mapa de clientes (se o arquivo existir)
+$configPath = __DIR__ . '/config_clientes.php';
+$clientes = file_exists($configPath) ? require $configPath : [];
+
 $empresa_id = $_POST['empresa_id'] ?? '';
 
+// 2. Define o destino (Se achar o cliente no arquivo, usa ele. Se não achar, usa as variáveis do Vercel)
 if (!empty($empresa_id) && isset($clientes[$empresa_id])) {
-    $spreadsheetId = $clientes[$empresa_id]['spreadsheet_id'];
-    $driveFolderId = $clientes[$empresa_id]['drive_folder_id'];
-    $emailRH       = $clientes[$empresa_id]['email_rh'];
-    $nomeEmpresa   = $clientes[$empresa_id]['nome'];
+    $spreadsheetId  = $clientes[$empresa_id]['spreadsheet_id'];
+    $driveFolderId  = $clientes[$empresa_id]['drive_folder_id'] ?? '';
+    $emailRH        = $clientes[$empresa_id]['email_rh'] ?? '';
+    $nomeEmpresa    = $clientes[$empresa_id]['nome'];
+    
+    // Para a conta de serviço funcionar no modo multi-empresa, ela precisa usar a chave privada global do Vercel
+    $serviceAccountEmail = getenv('GOOGLE_SERVICE_ACCOUNT_EMAIL');
+    $privateKey          = getenv('GOOGLE_PRIVATE_KEY');
 } else {
-    echo json_encode(['success' => false, 'message' => 'Empresa inválida ou não identificada.']);
+    // FALLBACK: Se não achar a empresa, usa tudo direto do painel do Vercel (Perfeito para o seu teste atual)
+    $spreadsheetId       = getenv('GOOGLE_SHEET_ID');
+    $serviceAccountEmail = getenv('GOOGLE_SERVICE_ACCOUNT_EMAIL');
+    $privateKey          = getenv('GOOGLE_PRIVATE_KEY');
+    
+    $driveFolderId       = ''; // Opcional no teste
+    $emailRH             = ''; // Opcional no teste
+    $nomeEmpresa         = 'Empresa de Teste Geral';
+}
+
+// 3. Validação de segurança das credenciais do Google
+if (empty($spreadsheetId) || empty($serviceAccountEmail) || empty($privateKey)) {
+    echo json_encode([
+        'success' => false, 
+        'message' => 'Configurações de credenciais do Google ausentes no painel do Vercel.'
+    ]);
     exit;
 }
 
-// Chaves globais vindas do .env do Vercel
-$googleApiKey  = getenv('GOOGLE_API_KEY'); 
-$resendApiKey  = getenv('RESEND_API_KEY'); // Chave de API do serviço de e-mail
+// Tratamento crucial para quebras de linha da Private Key no ambiente serverless da Vercel
+$privateKey = str_replace(['"', "'"], '', $privateKey);
+$privateKey = str_replace('\n', "\n", $privateKey);
 
-// Captura dos dados do formulário
+$resendApiKey = getenv('RESEND_API_KEY'); 
+
+// Captura e saneamento básico dos dados do formulário
 $identificacao = $_POST['identificacao'] ?? 'anonimo';
 $nome          = ($identificacao === 'anonimo') ? 'Anônimo' : ($_POST['nome'] ?? 'Anônimo');
 $contato       = ($identificacao === 'anonimo') ? 'Não informado' : ($_POST['contato'] ?? 'Não informado');
@@ -37,10 +62,62 @@ $data_hora     = date('d/m/Y H:i:s');
 $link_foto = 'Nenhuma foto enviada';
 
 // ============================================================
-// 1. ENVIAR FOTO PARA O GOOGLE DRIVE (Mesmo código anterior)
+// FUNÇÃO INTERNA: GERAR TOKEN OAUTH2 VIA CONTA DE SERVIÇO
 // ============================================================
-if (isset($_FILES['foto']) && $_FILES['foto']['error'] === UPLOAD_ERR_OK) {
-    $fileTmpPath = $_FILES['foto']['tmp_path'];
+function getGoogleAccessToken($email, $privateKey) {
+    $header = json_encode(['alg' => 'RS256', 'typ' => 'JWT']);
+    $t = time();
+    $payload = json_encode([
+        'iss' => $email,
+        'scope' => 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive.file',
+        'aud' => 'https://oauth2.googleapis.com/token',
+        'exp' => $t + 3600,
+        'iat' => $t
+    ]);
+
+    $base64UrlHeader = str_replace(['+', '/', '='], ['-', '_', ''], base64_encode($header));
+    $base64UrlPayload = str_replace(['+', '/', '='], ['-', '_', ''], base64_encode($payload));
+    
+    $signatureInput = $base64UrlHeader . "." . $base64UrlPayload;
+    
+    if (!openssl_sign($signatureInput, $signature, $privateKey, 'SHA256')) {
+        return null;
+    }
+    
+    $base64UrlSignature = str_replace(['+', '/', '='], ['-', '_', ''], base64_encode($signature));
+    $jwt = $signatureInput . "." . $base64UrlSignature;
+
+    $ch = curl_init('https://oauth2.googleapis.com/token');
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query([
+        'grant_type' => 'urn:ietf:params:oauth:grant-type:jwt-bearer',
+        'assertion' => $jwt
+    ]));
+    
+    $response = curl_exec($ch);
+    curl_close($ch);
+    
+    $data = json_decode($response, true);
+    return $data['access_token'] ?? null;
+}
+
+// Solcita o Token de Acesso válido para o Google
+$accessToken = getGoogleAccessToken($serviceAccountEmail, $privateKey);
+
+if (!$accessToken) {
+    echo json_encode([
+        'success' => false,
+        'message' => 'Falha na autenticação JWT com a Conta de Serviço do Google. Verifique sua GOOGLE_PRIVATE_KEY.'
+    ]);
+    exit;
+}
+
+// ============================================================
+// 1. ENVIAR FOTO PARA O GOOGLE DRIVE (Apenas se houver ID da pasta e arquivo)
+// ============================================================
+if (!empty($driveFolderId) && isset($_FILES['foto']) && $_FILES['foto']['error'] === UPLOAD_ERR_OK) {
+    $fileTmpPath = $_FILES['foto']['tmp_name'];
     $fileName    = $_FILES['foto']['name'];
     $fileType    = $_FILES['foto']['type'];
     
@@ -64,6 +141,7 @@ if (isset($_FILES['foto']) && $_FILES['foto']['error'] === UPLOAD_ERR_OK) {
     curl_setopt($ch, CURLOPT_POST, true);
     curl_setopt($ch, CURLOPT_POSTFIELDS, $postData);
     curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        'Authorization: Bearer ' . $accessToken,
         'Content-Type: multipart/related; boundary=' . $boundary
     ]);
     
@@ -77,28 +155,30 @@ if (isset($_FILES['foto']) && $_FILES['foto']['error'] === UPLOAD_ERR_OK) {
 }
 
 // ============================================================
-// 2. SALVAR DADOS NO GOOGLE SHEETS (Mesmo código anterior)
+// 2. SALVAR DADOS NO GOOGLE SHEETS (Seguro via Bearer Token)
 // ============================================================
 $values = [
     [$protocolo, $data_hora, $nomeEmpresa, $identificacao, $nome, $contato, $categoria, $local, $urgencia, $descricao, $link_foto]
 ];
 
 $payload = ['values' => $values];
-$urlSheets = "https://sheets.googleapis.com/v4/spreadsheets/{$spreadsheetId}/values/A1:append?valueInputOption=USER_ENTERED&key={$googleApiKey}";
+$urlSheets = "https://sheets.googleapis.com/v4/spreadsheets/{$spreadsheetId}/values/A1:append?valueInputOption=USER_ENTERED";
 
 $ch = curl_init($urlSheets);
 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 curl_setopt($ch, CURLOPT_POST, true);
 curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
-curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+curl_setopt($ch, CURLOPT_HTTPHEADER, [
+    'Content-Type: application/json',
+    'Authorization: Bearer ' . $accessToken
+]);
 $responseSheets = curl_exec($ch);
 curl_close($ch);
 
 // ============================================================
 // 3. ENVIAR E-MAIL PARA O RH DA EMPRESA (Via API do Resend)
 // ============================================================
-if (!empty($resendApiKey)) {
-    // Montando o corpo do e-mail formatado em HTML
+if (!empty($resendApiKey) && !empty($emailRH)) {
     $emailHtml = "
     <h2>Novo Relato de Segurança Protocolado (NR-1)</h2>
     <p><strong>Protocolo:</strong> {$protocolo}</p>
@@ -119,7 +199,7 @@ if (!empty($resendApiKey)) {
     ";
 
     $emailData = [
-        'from' => 'Canal NR-1 <relatos@seudominio.com>', // Seu domínio configurado no Resend
+        'from' => 'Canal NR-1 <relatos@seu-dominio-resend.com>', 
         'to' => [$emailRH],
         'subject' => "[Alerta {$urgencia}] Novo Relato SST - Protocolo {$protocolo}",
         'html' => $emailHtml
@@ -133,13 +213,11 @@ if (!empty($resendApiKey)) {
         'Authorization: Bearer ' . $resendApiKey,
         'Content-Type: application/json'
     ]);
-    
-    // Dispara em background (não travamos a resposta se o envio do e-mail demorar um pouco)
     curl_exec($ch);
     curl_close($ch);
 }
 
-// Retorna o sucesso para o frontend JavaScript exibir a tela verde de sucesso
+// Retorna resposta definitiva de sucesso para o frontend
 echo json_encode([
     'success' => true,
     'protocolo' => $protocolo
