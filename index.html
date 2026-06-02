@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Canal de Relatos e Direito de Recusa — NR-1</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+  <link rel="stylesheet" href="style.css">
+  <script src="./script.js" defer></script>
+</head>
+<body>
+
+<div class="page">
+
+  <div class="topbar">
+    <div>
+      <span class="badge"><i class="ti ti-shield-check"></i> NR-1 · PGR</span>
+      <h1>Canal de relato de<br>riscos e desvios</h1>
+      <p class="subtitle">Anonimato garantido, proteção contra retaliação e integração ao Programa de Gerenciamento de Riscos (PGR).</p>
+    </div>
+    <button class="theme-btn" id="theme-btn" aria-label="Alternar tema">
+      <i class="ti ti-moon" id="theme-icon"></i>
+    </button>
+  </div>
+
+  <div class="alert-banner" id="alert-banner" style="display: none;">
+    <i class="ti ti-alert-triangle"></i>
+    <p><strong>Risco grave e iminente identificado.</strong> Além deste relato, interrompa a atividade imediatamente e notifique seu gestor ou a CIPA de forma presencial. O envio aqui não substitui a ação imediata no local.</p>
+  </div>
+
+  <form id="nr1-form" novalidate>
+    
+    <input type="hidden" name="empresa_id" id="empresa_id" value="ID_DA_EMPRESA_AQUI">
+    <input type="hidden" name="cnpj_empresa" id="cnpj_empresa" value="CNPJ_AQUI">
+
+    <div class="card">
+      <div class="section-label"><i class="ti ti-user-question"></i> Identificação do relato</div>
+      <div class="radio-grid">
+        <div class="radio-opt">
+          <input type="radio" name="identificacao" id="anonimo" value="anonimo" checked>
+          <label class="radio-label" for="anonimo">
+            <i class="ti ti-incognito"></i>
+            <div>
+              <div class="label-main">Relato anônimo</div>
+              <div class="label-sub">Identidade não registrada</div>
+            </div>
+          </label>
+        </div>
+        <div class="radio-opt">
+          <input type="radio" name="identificacao" id="identificado" value="identificado">
+          <label class="radio-label" for="identificado">
+            <i class="ti ti-id-badge"></i>
+            <div>
+              <div class="label-main">Relato identificado</div>
+              <div class="label-sub">Permite retorno da equipe SST</div>
+            </div>
+          </label>
+        </div>
+      </div>
+
+      <div class="identity-wrap" id="identity-wrap">
+        <div class="divider"></div>
+        <div class="two-col">
+          <div class="field">
+            <label class="field-label" for="nome"><i class="ti ti-user"></i> Nome completo</label>
+            <input type="text" id="nome" placeholder="Seu nome">
+          </div>
+          <div class="field">
+            <label class="field-label" for="contato"><i class="ti ti-device-mobile"></i> E-mail ou WhatsApp</label>
+            <input type="text" id="contato" placeholder="(00) 99999-0000">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-label"><i class="ti ti-tag"></i> Classificação do ocorrido</div>
+      <div class="two-col">
+        <div class="field">
+          <label class="field-label" for="categoria"><i class="ti ti-list"></i> Natureza do desvio / risco</label>
+          <select id="categoria" required>
+            <option value="" disabled selected>Selecione...</option>
+            <option value="grave_iminente">Risco grave e iminente de acidente</option>
+            <option value="direito_recusa">Direito de recusa exercido</option>
+            <option value="epi_epc">Falta ou irregularidade em EPI / EPC</option>
+            <option value="ergonomia">Condições ergonômicas inadequadas</option>
+            <option value="assedio_violencia">Assédio, discriminação ou violência</option>
+            <option value="outros">Outros descumprimentos de NR</option>
+          </select>
+        </div>
+        <div class="field">
+          <label class="field-label" for="local"><i class="ti ti-map-pin"></i> Setor / local do fato</label>
+          <input type="text" id="local" required placeholder="Ex: Galpão B, Linha 3">
+          <span class="field-hint">Seja o mais específico possível.</span>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="field-label" style="margin-bottom: 10px;">
+        <i class="ti ti-clock-exclamation"></i> Urgência percebida
+      </div>
+      <div class="urgency-grid">
+        <div class="urgency-opt">
+          <input type="radio" name="urgencia" id="baixa" value="baixa">
+          <label class="urgency-label" for="baixa">
+            <div class="dot" style="background:#10B981;"></div>
+            <div class="u-name">Baixa</div>
+            <div class="u-sub">Melhoria pontual</div>
+          </label>
+        </div>
+        <div class="urgency-opt">
+          <input type="radio" name="urgencia" id="media" value="media" checked>
+          <label class="urgency-label" for="media">
+            <div class="dot" style="background:#F59E0B;"></div>
+            <div class="u-name">Média</div>
+            <div class="u-sub">Requer atenção</div>
+          </label>
+        </div>
+        <div class="urgency-opt">
+          <input type="radio" name="urgencia" id="alta" value="alta">
+          <label class="urgency-label" for="alta">
+            <div class="dot pulse" style="background:#EF4444;"></div>
+            <div class="u-name">Alta</div>
+            <div class="u-sub">Perigo real</div>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-label"><i class="ti ti-file-description"></i> Detalhamento da situação</div>
+      <div class="field">
+        <label class="field-label" for="descricao">Descreva o que ocorreu ou o risco identificado</label>
+        <textarea id="descricao" required rows="5" maxlength="1000"
+          placeholder="Detalhe máquinas, comportamentos, falhas de processo, datas ou horários relevantes..."></textarea>
+        <div class="char-counter" id="char-count">0 / 1000</div>
+      </div>
+    </div>
+<div class="card">
+      <div class="section-label"><i class="ti ti-camera"></i> Evidência fotográfica (Opcional)</div>
+      <div class="field">
+        <label class="field-label" for="foto">Selecione uma imagem do risco/fato</label>
+        <input type="file" id="foto" accept="image/*" onchange="mostrarNomeArquivo(this)">
+        <div id="nome-arquivo" style="margin-top: 5px; font-size: 14px; color: #10B981; display: none;"></div>
+      </div>
+    </div>
+
+    <script>
+      function mostrarNomeArquivo(input) {
+        const fileNameDiv = document.getElementById('nome-arquivo');
+        if (input.files && input.files[0]) {
+          fileNameDiv.textContent = "Arquivo selecionado: " + input.files[0].name;
+          fileNameDiv.style.display = 'block';
+        } else {
+          fileNameDiv.style.display = 'none';
+        }
+      }
+    </script>
+
+<script>
+  // Script rápido para mostrar o nome da foto na tela após o usuário selecionar
+  function mostrarNomeArquivo(input) {
+    const fileNameDiv = document.getElementById('nome-arquivo');
+    if (input.files && input.files[0]) {
+      fileNameDiv.textContent = "Arquivo selecionado: " + input.files[0].name;
+      fileNameDiv.style.display = 'block';
+    } else {
+      fileNameDiv.style.display = 'none';
+    }
+  }
+</script>
+
+    <div class="consent-row">
+      <input type="checkbox" id="termos" required>
+      <label class="consent-text" for="termos">
+        Estou ciente de que este relato será integrado ao fluxo de gerenciamento de riscos conforme a <strong>NR-1</strong>, com compromisso corporativo de investigação imediata e proteção total da minha identidade.
+      </label>
+    </div>
+
+    <button type="submit" class="submit-btn">
+      <i class="ti ti-send"></i>
+      Protocolar relato de segurança
+    </button>
+
+  </form>
+
+  <div class="success-state" id="success-state" style="display: none;">
+    <div class="success-icon"><i class="ti ti-check"></i></div>
+    <div class="success-title">Relato protocolado com sucesso</div>
+    <p class="success-sub">A equipe de SST/SESMT irá investigar o ocorrido. Sua identidade está protegida.</p>
+    <span class="success-code" id="protocol-code"></span>
+    <button class="reset-btn" onclick="resetForm()">Enviar outro relato</button>
+  </div>
+
+</div>
+
+</body>
+</html>
