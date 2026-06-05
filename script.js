@@ -1,216 +1,216 @@
-// ========================================================
-// 1. CARREGAMENTO DO TEMA E INICIALIZAÇÃO
-// ========================================================
-
 document.addEventListener('DOMContentLoaded', async () => {
-  // Pega o parâmetro ?cliente=XXXX da URL para carregar o tema
   const urlParams = new URLSearchParams(window.location.search);
   const clienteId = urlParams.get('cliente') || 'padrao';
 
   try {
-    // Faz a chamada para a nossa API dinâmica do PHP
     const response = await fetch(`/api/theme.php?cliente=${clienteId}`);
-    
-    if (!response.ok) {
-      throw new Error(`Erro no servidor: Status ${response.status}`);
-    }
-
+    if (!response.ok) throw new Error(`Status ${response.status}`);
     const data = await response.json();
-
     if (data.success) {
-      // Injeta as variáveis CSS dinamicamente na página
-      const root = document.documentElement;
-      root.style.setProperty('--primary', data.tema.primary);
-      root.style.setProperty('--primary-dark', data.tema.primary_dark);
-      root.style.setProperty('--primary-light', data.tema.primary_light);
-      root.style.setProperty('--primary-focus-shadow', data.tema.primary_focus_shadow);
-
-      // Preenche os campos ocultos do formulário HTML
       document.getElementById('empresa_id').value = clienteId;
       document.getElementById('cnpj_empresa').value = data.cnpj;
-      
-      console.log("Tema aplicado com sucesso para:", data.nome);
-    } else {
-      console.error('Erro retornado pela API de Temas:', data.message);
     }
+  } catch (e) { console.warn('Tema não carregado:', e); }
 
-  } catch (error) {
-    console.error('Erro crítico ao carregar o tema personalizado:', error);
+  const saved = localStorage.getItem('nr1-theme');
+  if (saved === 'light') {
+    document.documentElement.classList.remove('dark');
+    document.getElementById('theme-icon').className = 'ti ti-sun text-base';
   }
 
-  // Garante que os campos de identidade iniciem no estado correto (Anônimo)
   updateIdentityFields();
+  setupUpload();
 });
 
-// ========================================================
-// 2. ALTERNADOR DOS CAMPOS DE IDENTIFICAÇÃO
-// ========================================================
+// ── Tema ──────────────────────────────────────────────
+document.getElementById('theme-btn').addEventListener('click', () => {
+  const html = document.documentElement;
+  const icon = document.getElementById('theme-icon');
+  const dark = html.classList.toggle('dark');
+  icon.className = dark ? 'ti ti-moon text-base' : 'ti ti-sun text-base';
+  localStorage.setItem('nr1-theme', dark ? 'dark' : 'light');
+});
 
+// ── Identificação ─────────────────────────────────────
 function updateIdentityFields() {
-  const identityWrap = document.getElementById('identity-wrap');
-  const selected = document.querySelector('[name="identificacao"]:checked');
-  
-  if (!identityWrap || !selected) return;
-  
-  const nomeInput = document.getElementById('nome');
-  const contatoInput = document.getElementById('contato');
-
-  if (selected.value === 'identificado') {
-    identityWrap.classList.add('open');
-    if(nomeInput) nomeInput.required = true;
-    if(contatoInput) contatoInput.required = true;
-  } else {
-    identityWrap.classList.remove('open');
-    if(nomeInput) nomeInput.required = false;
-    if(contatoInput) contatoInput.required = false;
-  }
+  const wrap = document.getElementById('identity-wrap');
+  const sel  = document.querySelector('[name="identificacao"]:checked');
+  if (!wrap || !sel) return;
+  const isId = sel.value === 'identificado';
+  wrap.classList.toggle('open', isId);
+  const nome    = document.getElementById('nome');
+  const contato = document.getElementById('contato');
+  if (nome)    { nome.required    = isId; if (!isId) nome.value    = ''; }
+  if (contato) { contato.required = isId; if (!isId) contato.value = ''; }
 }
 
-// Delegação de eventos para os botões de rádio (Anônimo / Identificado)
-document.addEventListener('change', function(e) {
-  if (e.target && e.target.name === 'identificacao') {
-    updateIdentityFields();
-  }
-});
-
-// ========================================================
-// 3. CONTADOR DE CARACTERES & BANNER DE ALERTA
-// ========================================================
-
-// Monitora a seleção da categoria para exibir o Banner de Risco Grave
-document.addEventListener('change', function(e) {
-  if (e.target && e.target.id === 'categoria') {
+document.addEventListener('change', e => {
+  if (e.target?.name === 'identificacao') updateIdentityFields();
+  if (e.target?.id === 'categoria') {
     const banner = document.getElementById('alert-banner');
-    if (banner) {
-      banner.style.display = (e.target.value === 'grave_iminente') ? 'flex' : 'none';
-    }
+    if (banner) banner.style.display = e.target.value === 'grave_iminente' ? 'flex' : 'none';
   }
 });
 
-// Monitora o campo de texto para atualizar o contador de caracteres
-document.addEventListener('input', function(e) {
-  if (e.target && e.target.id === 'descricao') {
-    const charCount = document.getElementById('char-count');
-    if (!charCount) return;
-
-    const len = e.target.value.length;
-    charCount.textContent = `${len} / 1000`;
-    
-    if (len >= 900 && len < 1000) {
-      charCount.className = 'char-counter warn';
-    } else if (len >= 1000) {
-      charCount.className = 'char-counter over';
-    } else {
-      charCount.className = 'char-counter';
-    }
-  }
+// ── Contador ──────────────────────────────────────────
+document.addEventListener('input', e => {
+  if (e.target?.id !== 'descricao') return;
+  const n = e.target.value.length;
+  const el = document.getElementById('char-count');
+  if (!el) return;
+  el.textContent = `${n} / 1000`;
+  el.className = n >= 1000
+    ? 'text-right text-[11px] font-mono text-red-500'
+    : n >= 900
+    ? 'text-right text-[11px] font-mono text-amber-500'
+    : 'text-right text-[11px] text-gray-400 font-mono';
 });
 
-// ========================================================
-// 4. ENVIO DO FORMULÁRIO VIA AJAX (FETCH)
-// ========================================================
+// ── Upload ────────────────────────────────────────────
+function setupUpload() {
+  const zone  = document.getElementById('upload-zone');
+  const input = document.getElementById('foto');
+  const disp  = document.getElementById('nome-arquivo');
+  if (!zone || !input || !disp) return;
 
+  zone.addEventListener('click', () => input.click());
+
+  function showFile(file) {
+    disp.textContent = '✓ ' + file.name;
+    disp.classList.remove('hidden');
+    zone.style.borderStyle = 'solid';
+    zone.style.borderColor = '#10B981';
+  }
+
+  input.addEventListener('change', () => {
+    if (input.files?.[0]) showFile(input.files[0]);
+    else { disp.classList.add('hidden'); zone.style.borderStyle = ''; zone.style.borderColor = ''; }
+  });
+
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.style.borderColor = '#E53E3E'; });
+  zone.addEventListener('dragleave', () => { zone.style.borderColor = ''; });
+  zone.addEventListener('drop', e => {
+    e.preventDefault();
+    zone.style.borderColor = '';
+    const file = e.dataTransfer.files[0];
+    if (file?.type.startsWith('image/')) {
+      const dt = new DataTransfer(); dt.items.add(file); input.files = dt.files;
+      showFile(file);
+    }
+  });
+}
+
+// ── Envio ─────────────────────────────────────────────
 document.getElementById('nr1-form').addEventListener('submit', async function(e) {
   e.preventDefault();
 
   if (!document.getElementById('termos').checked) {
-    alert('Você precisa aceitar os termos antes de prosseguir.');
+    const row = document.getElementById('consent-row');
+    row.classList.add('shake');
+    setTimeout(() => row.classList.remove('shake'), 400);
     return;
   }
 
-  // Trava o botão de envio para evitar duplo clique
-  const submitBtn = this.querySelector('.submit-btn');
-  submitBtn.disabled = true;
-  submitBtn.innerHTML = '<i class="ti ti-loader animate-spin"></i> Enviando...';
+  const btn     = document.getElementById('submit-btn');
+  const content = document.getElementById('btn-content');
+  const loading = document.getElementById('btn-loading');
+  btn.disabled = true;
+  content.classList.add('hidden');
+  loading.classList.remove('hidden');
 
-  const formData = new FormData();
-  
-  // Captura o ID do cliente atual na tela
-  const idEmpresa = document.getElementById('empresa_id').value;
-  
-  // Vincula as chaves que o submit.php precisa ler dinamicamente
-  formData.append('empresa_id', idEmpresa);
-  formData.append('empresa_token', idEmpresa); 
-  formData.append('cnpj_empresa', document.getElementById('cnpj_empresa').value);
-  
-  // Captura dos demais campos
-  formData.append('identificacao', document.querySelector('input[name="identificacao"]:checked').value);
-  formData.append('nome', document.getElementById('nome').value || 'Anônimo');
-  formData.append('contato', document.getElementById('contato').value || 'Não informado');
-  formData.append('categoria', document.getElementById('categoria').value);
-  formData.append('local', document.getElementById('local').value);
-  formData.append('urgencia', document.querySelector('input[name="urgencia"]:checked').value);
-  formData.append('descricao', document.getElementById('descricao').value);
-
-  // Captura da foto/evidência anexada
-  const fotoInput = document.getElementById('foto');
-  if (fotoInput && fotoInput.files.length > 0) {
-    formData.append('foto', fotoInput.files[0]);
-  }
+  const fd = new FormData();
+  const id = document.getElementById('empresa_id').value;
+  fd.append('empresa_id',    id);
+  fd.append('empresa_token', id);
+  fd.append('cnpj_empresa',  document.getElementById('cnpj_empresa').value);
+  fd.append('identificacao', document.querySelector('[name="identificacao"]:checked').value);
+  fd.append('nome',          document.getElementById('nome').value || 'Anônimo');
+  fd.append('contato',       document.getElementById('contato').value || 'Não informado');
+  fd.append('categoria',     document.getElementById('categoria').value);
+  fd.append('local',         document.getElementById('local').value);
+  fd.append('urgencia',      document.querySelector('[name="urgencia"]:checked').value);
+  fd.append('descricao',     document.getElementById('descricao').value);
+  const foto = document.getElementById('foto');
+  if (foto?.files.length) fd.append('foto', foto.files[0]);
 
   try {
-    const response = await fetch('/api/submit.php', {
-      method: 'POST',
-      body: formData
-    });
-
-    if (!response.ok) {
-      throw new Error(`Erro na rede: Status ${response.status}`);
-    }
-
-    const result = await response.json();
-
+    const res = await fetch('/api/submit.php', { method: 'POST', body: fd });
+    if (!res.ok) throw new Error(`Status ${res.status}`);
+    const result = await res.json();
     if (result.success) {
-      // Oculta o formulário principal e banners auxiliares
       document.getElementById('nr1-form').style.display = 'none';
-      const alertBanner = document.getElementById('alert-banner');
-      if (alertBanner) alertBanner.style.display = 'none';
-      
-      // Exibe a tela de sucesso com o número do protocolo gerado
-      const successState = document.getElementById('success-state');
+      document.getElementById('alert-banner').style.display = 'none';
+      const ss = document.getElementById('success-state');
       document.getElementById('protocol-code').textContent = 'Protocolo: ' + result.protocolo;
-      successState.style.display = 'flex'; 
+      ss.classList.remove('success-hidden');
+      ss.classList.add('success-visible');
+      launchParticles();
+      if (result.upload_debug) {
+        console.log('📸 Upload debug:', JSON.stringify(result.upload_debug, null, 2));
+        if (result.upload_debug.error) {
+          console.error('❌ Upload error:', result.upload_debug.error);
+        }
+      }
     } else {
-      alert('Erro ao enviar relato: ' + result.message);
-      // Destrava o botão em caso de erro retornado pela API
-      submitBtn.disabled = false;
-      submitBtn.innerHTML = '<i class="ti ti-send"></i> Protocolar relato de segurança';
+      alert('Erro: ' + result.message);
+      resetBtn();
     }
-  } catch (error) {
-    console.error('Erro na requisição de envio:', error);
-    alert('Erro de conexão com o servidor ao tentar protocolar.');
-    // Destrava o botão em caso de queda de conexão
-    submitBtn.disabled = false;
-    submitBtn.innerHTML = '<i class="ti ti-send"></i> Protocolar relato de segurança';
+  } catch (err) {
+    console.error(err);
+    alert('Erro de conexão.');
+    resetBtn();
   }
 });
 
-// ========================================================
-// 5. RESET E RETORNO DO FORMULÁRIO (NOVO RELATO)
-// ========================================================
+function resetBtn() {
+  const btn     = document.getElementById('submit-btn');
+  const content = document.getElementById('btn-content');
+  const loading = document.getElementById('btn-loading');
+  btn.disabled = false;
+  content.classList.remove('hidden');
+  loading.classList.add('hidden');
+}
 
-function resetForm() {
-  // 1. Limpa todas as informações preenchidas nos inputs e textareas
-  document.getElementById('nr1-form').reset();
-  
-  // 2. ✨ CORREÇÃO DO BUG: Localiza o botão de enviar, reativa ele e volta o texto padrão
-  const submitBtn = document.querySelector('#nr1-form .submit-btn');
-  if (submitBtn) {
-    submitBtn.disabled = false;
-    submitBtn.innerHTML = '<i class="ti ti-send"></i> Protocolar relato de segurança';
+// ── Partículas ────────────────────────────────────────
+function launchParticles() {
+  const c = document.getElementById('success-particles');
+  if (!c) return;
+  const cols = ['#10B981','#34D399','#6EE7B7','#F59E0B','#FBBF24','#E53E3E','#FCA5A5'];
+  for (let i = 0; i < 24; i++) {
+    const p = document.createElement('div');
+    const size = Math.random() * 8 + 5;
+    p.className = 'particle';
+    p.style.cssText = `
+      width:${size}px;height:${size}px;
+      left:${Math.random()*100}%;bottom:30%;
+      background:${cols[Math.floor(Math.random()*cols.length)]};
+      --tx:${(Math.random()-.5)*90}px;
+      --dur:${Math.random()*.6+.7}s;
+      --delay:${Math.random()*.5}s;
+      border-radius:${Math.random()>.5?'50%':'3px'};
+    `;
+    c.appendChild(p);
   }
-  
-  // 3. Alterna a exibição visual voltando para o formulário limpo
+  setTimeout(() => c.innerHTML = '', 2200);
+}
+
+// ── Reset ─────────────────────────────────────────────
+function resetForm() {
+  document.getElementById('nr1-form').reset();
+  resetBtn();
   document.getElementById('nr1-form').style.display = 'block';
-  document.getElementById('success-state').style.display = 'none';
-  
-  // 4. Limpa os avisos de uploads anteriores e contadores
-  const nomeArquivo = document.getElementById('nome-arquivo');
-  if (nomeArquivo) nomeArquivo.style.display = 'none';
-  
-  const charCount = document.getElementById('char-count');
-  if (charCount) charCount.textContent = '0 / 1000';
-  
-  // 5. Reseta os campos visuais de identidade de volta para o modo Anônimo obrigatório
+  const ss = document.getElementById('success-state');
+  ss.classList.remove('success-visible');
+  ss.classList.add('success-hidden');
+
+  const arq = document.getElementById('nome-arquivo');
+  if (arq) { arq.classList.add('hidden'); arq.textContent = ''; }
+  const zone = document.getElementById('upload-zone');
+  if (zone) { zone.style.borderStyle = ''; zone.style.borderColor = ''; }
+
+  const cc = document.getElementById('char-count');
+  if (cc) { cc.textContent = '0 / 1000'; cc.className = 'text-right text-[11px] text-gray-400 font-mono'; }
+
   updateIdentityFields();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 }

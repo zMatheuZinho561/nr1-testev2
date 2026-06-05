@@ -3,197 +3,364 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Canal de Relatos e Direito de Recusa — NR-1</title>
+  <title>Canal de Relatos — NR-1</title>
+  <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
-  <link rel="stylesheet" href="style.css">
-  <script src="./script.js" defer></script>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Arial', 'Helvetica Neue', 'Helvetica', 'sans-serif'],
+            mono: ['"IBM Plex Mono"', 'Courier New', 'monospace'],
+          },
+          colors: {
+            brand: {
+              50:  'rgba(229,62,62,0.06)',
+              100: 'rgba(229,62,62,0.12)',
+              400: '#EF4444',
+              500: '#E53E3E',
+              600: '#C53030',
+            }
+          },
+          animation: {
+            'fade-up':   'fadeUp 0.5s ease both',
+            'fade-up-2': 'fadeUp 0.5s 0.08s ease both',
+            'fade-up-3': 'fadeUp 0.5s 0.16s ease both',
+            'fade-up-4': 'fadeUp 0.5s 0.24s ease both',
+            'fade-up-5': 'fadeUp 0.5s 0.32s ease both',
+            'pop':       'pop 0.45s cubic-bezier(0.34,1.56,0.64,1) 0.2s both',
+            'ripple':    'rippleOut 1.2s ease-out 0.3s both',
+            'spin-slow': 'spin 0.75s linear infinite',
+          },
+          keyframes: {
+            fadeUp:    { from: { opacity:'0', transform:'translateY(16px)' }, to: { opacity:'1', transform:'translateY(0)' } },
+            pop:       { '0%': {transform:'scale(0)'}, '70%': {transform:'scale(1.15)'}, '100%': {transform:'scale(1)'} },
+            rippleOut: { '0%': {transform:'scale(0.8)',opacity:'0.5'}, '100%': {transform:'scale(2.5)',opacity:'0'} },
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    .radio-opt input:checked + label {
+      border-color: #E53E3E !important;
+      background: rgba(229,62,62,0.07);
+      box-shadow: 0 0 0 3px rgba(229,62,62,0.15);
+    }
+    .radio-opt input:checked + label .icon-wrap {
+      background: #E53E3E !important;
+      color: #fff !important;
+    }
+    .identity-wrap {
+      max-height: 0; opacity: 0; overflow: hidden;
+      transition: max-height 0.4s cubic-bezier(0.4,0,0.2,1), opacity 0.35s ease, margin-top 0.3s ease;
+    }
+    .identity-wrap.open { max-height: 200px; opacity: 1; margin-top: 1.25rem; }
+
+    input[type=text]:focus, select:focus, textarea:focus {
+      outline: none !important;
+      border-color: #E53E3E !important;
+      box-shadow: 0 0 0 3px rgba(229,62,62,0.18) !important;
+      transform: translateY(-1px);
+    }
+    input[type=text], select, textarea {
+      transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
+    }
+
+    .urgency-low  input:checked + label { box-shadow: 0 0 0 3px rgba(16,185,129,0.2)!important; border-color:#10B981!important; background:rgba(16,185,129,0.07); }
+    .urgency-med  input:checked + label { box-shadow: 0 0 0 3px rgba(245,158,11,0.2)!important; border-color:#F59E0B!important; background:rgba(245,158,11,0.07); }
+    .urgency-high input:checked + label { box-shadow: 0 0 0 3px rgba(239,68,68,0.2)!important; border-color:#EF4444!important; background:rgba(239,68,68,0.07); }
+
+    .upload-zone { transition: all 0.2s; }
+    .upload-zone:hover { border-color: #E53E3E!important; background: rgba(229,62,62,0.05); transform: translateY(-2px); }
+    .upload-zone:hover .upload-icon { color: #E53E3E; }
+
+    .submit-btn::before {
+      content:''; position:absolute; inset:0; border-radius:inherit;
+      background: linear-gradient(90deg,transparent,rgba(255,255,255,0.14),transparent);
+      background-size:200%; opacity:0; transition: opacity 0.3s;
+    }
+    .submit-btn:hover::before { opacity:1; animation: shimmer 1.6s infinite; }
+    @keyframes shimmer { from{background-position:-200% center} to{background-position:200% center} }
+    @keyframes shake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-6px)} 40%{transform:translateX(6px)} 60%{transform:translateX(-4px)} 80%{transform:translateX(4px)} }
+    .shake { animation: shake 0.4s ease; }
+    @keyframes pulseDot { 0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(239,68,68,0.5)} 50%{opacity:.75;box-shadow:0 0 0 6px rgba(239,68,68,0)} }
+    .pulse-dot { animation: pulseDot 1.6s infinite; }
+    @keyframes particleFloat { 0%{transform:translateY(0) translateX(0) scale(1);opacity:1} 100%{transform:translateY(-90px) translateX(var(--tx,20px)) scale(0);opacity:0} }
+    .particle { position:absolute; animation: particleFloat var(--dur,.9s) ease-out var(--delay,0s) both; }
+    .success-hidden { display:none; }
+    .success-visible { display:flex; animation: fadeUp 0.6s cubic-bezier(0.34,1.56,0.64,1) both; }
+    @keyframes fadeUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
+    .abs-ring { fill:none; stroke:#E53E3E; }
+    .card-hover { transition: box-shadow 0.2s, transform 0.2s; }
+    .card-hover:hover { transform: translateY(-1px); }
+  </style>
 </head>
-<body>
+<body class="bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 min-h-screen">
 
-<div class="page">
+<div class="max-w-2xl mx-auto px-5 py-12 pb-20">
 
-  <div class="topbar">
-    <div>
-      <span class="badge"><i class="ti ti-shield-check"></i> NR-1 · PGR</span>
-      <h1>Canal de relato de<br>riscos e desvios</h1>
-      <p class="subtitle">Anonimato garantido, proteção contra retaliação e integração ao Programa de Gerenciamento de Riscos (PGR).</p>
+  <!-- TOPBAR -->
+  <div class="flex justify-between items-start mb-10 animate-fade-up">
+    <div class="relative">
+      <svg class="absolute -top-3 -left-6 w-80 h-28 pointer-events-none select-none" viewBox="0 0 320 112" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <ellipse cx="155" cy="56" rx="148" ry="50" class="abs-ring" opacity="0.06" stroke-width="1"/>
+        <ellipse cx="155" cy="56" rx="110" ry="35" class="abs-ring" opacity="0.10" stroke-width="1"/>
+        <ellipse cx="155" cy="56" rx="72" ry="22" class="abs-ring" opacity="0.16" stroke-width="1.2"/>
+        <circle cx="50" cy="32" r="4" fill="#E53E3E" opacity="0.22"/>
+        <circle cx="265" cy="80" r="3" fill="#E53E3E" opacity="0.16"/>
+        <circle cx="278" cy="36" r="2" fill="#E53E3E" opacity="0.12"/>
+        <circle cx="38" cy="72" r="2.5" fill="#E53E3E" opacity="0.18"/>
+        <line x1="50" y1="32" x2="86" y2="48" stroke="#E53E3E" stroke-width="0.8" opacity="0.12"/>
+        <line x1="265" y1="80" x2="230" y2="65" stroke="#E53E3E" stroke-width="0.8" opacity="0.12"/>
+      </svg>
+      <div class="relative z-10">
+        <span class="inline-flex items-center gap-1.5 font-mono text-[10px] font-semibold tracking-widest uppercase bg-red-50 dark:bg-red-950/60 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900 px-2.5 py-1 rounded-md">
+          <i class="ti ti-shield-check text-sm"></i> NR-1 · PGR
+        </span>
+        <h1 class="mt-3 text-[26px] font-bold leading-tight tracking-tight text-gray-900 dark:text-white">
+          Canal de relato de<br>riscos e desvios
+        </h1>
+        <p class="mt-2 text-sm text-gray-500 dark:text-gray-400 leading-relaxed max-w-sm">
+          Anonimato garantido, proteção contra retaliação e integração ao Programa de Gerenciamento de Riscos (PGR).
+        </p>
+      </div>
     </div>
-    <button class="theme-btn" id="theme-btn" aria-label="Alternar tema">
-      <i class="ti ti-moon" id="theme-icon"></i>
+    <button id="theme-btn" aria-label="Alternar tema"
+      class="flex-shrink-0 w-9 h-9 flex items-center justify-center rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:scale-105 active:scale-95 transition-all shadow-sm cursor-pointer">
+      <i class="ti ti-moon text-base" id="theme-icon"></i>
     </button>
   </div>
 
-  <div class="alert-banner" id="alert-banner" style="display: none;">
-    <i class="ti ti-alert-triangle"></i>
-    <p><strong>Risco grave e iminente identificado.</strong> Além deste relato, interrompa a atividade imediatamente e notifique seu gestor ou a CIPA de forma presencial. O envio aqui não substitui a ação imediata no local.</p>
+  <!-- ALERT BANNER -->
+  <div id="alert-banner" style="display:none"
+    class="flex items-start gap-3 p-4 mb-5 rounded-2xl border bg-red-950 border-red-800">
+    <div class="w-9 h-9 flex-shrink-0 flex items-center justify-center rounded-lg bg-red-500/20">
+      <i class="ti ti-alert-triangle text-red-400 text-lg"></i>
+    </div>
+    <p class="text-sm text-red-300 leading-relaxed">
+      <strong class="text-red-200">Risco grave e iminente identificado.</strong> Além deste relato, interrompa a atividade imediatamente e notifique seu gestor ou a CIPA presencialmente.
+    </p>
   </div>
 
+  <!-- FORM -->
   <form id="nr1-form" novalidate>
-    
-    <input type="hidden" name="empresa_id" id="empresa_id" value="ID_DA_EMPRESA_AQUI">
-    <input type="hidden" name="cnpj_empresa" id="cnpj_empresa" value="CNPJ_AQUI">
+    <input type="hidden" id="empresa_id" value="ID_DA_EMPRESA_AQUI">
+    <input type="hidden" id="cnpj_empresa" value="CNPJ_AQUI">
 
-    <div class="card">
-      <div class="section-label"><i class="ti ti-user-question"></i> Identificação do relato</div>
-      <div class="radio-grid">
+    <!-- Card 1: Identificação -->
+    <div class="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl p-6 mb-3 shadow-sm card-hover animate-fade-up-2">
+      <p class="flex items-center gap-2 font-mono text-[10px] font-semibold tracking-widest uppercase text-gray-400 mb-4">
+        <i class="ti ti-user-question"></i> Identificação do relato
+      </p>
+      <div class="grid grid-cols-2 gap-2.5">
         <div class="radio-opt">
-          <input type="radio" name="identificacao" id="anonimo" value="anonimo" checked>
-          <label class="radio-label" for="anonimo">
-            <i class="ti ti-incognito"></i>
+          <input type="radio" name="identificacao" id="anonimo" value="anonimo" checked class="sr-only">
+          <label for="anonimo" class="flex items-center gap-3 p-3.5 border-[1.5px] border-gray-200 dark:border-gray-700 rounded-xl cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 hover:-translate-y-px active:scale-[0.98] transition-all select-none">
+            <div class="icon-wrap w-10 h-10 flex items-center justify-center rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-400 flex-shrink-0 transition-all">
+              <i class="ti ti-incognito text-xl"></i>
+            </div>
             <div>
-              <div class="label-main">Relato anônimo</div>
-              <div class="label-sub">Identidade não registrada</div>
+              <div class="text-[13.5px] font-semibold text-gray-800 dark:text-gray-100">Relato anônimo</div>
+              <div class="text-[11px] text-gray-400 mt-0.5">Identidade não registrada</div>
             </div>
           </label>
         </div>
         <div class="radio-opt">
-          <input type="radio" name="identificacao" id="identificado" value="identificado">
-          <label class="radio-label" for="identificado">
-            <i class="ti ti-id-badge"></i>
+          <input type="radio" name="identificacao" id="identificado" value="identificado" class="sr-only">
+          <label for="identificado" class="flex items-center gap-3 p-3.5 border-[1.5px] border-gray-200 dark:border-gray-700 rounded-xl cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 hover:-translate-y-px active:scale-[0.98] transition-all select-none">
+            <div class="icon-wrap w-10 h-10 flex items-center justify-center rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-400 flex-shrink-0 transition-all">
+              <i class="ti ti-id-badge text-xl"></i>
+            </div>
             <div>
-              <div class="label-main">Relato identificado</div>
-              <div class="label-sub">Permite retorno da equipe SST</div>
+              <div class="text-[13.5px] font-semibold text-gray-800 dark:text-gray-100">Relato identificado</div>
+              <div class="text-[11px] text-gray-400 mt-0.5">Permite retorno da SST</div>
             </div>
           </label>
         </div>
       </div>
-
-      <div class="identity-wrap" id="identity-wrap">
-        <div class="divider"></div>
-        <div class="two-col">
-          <div class="field">
-            <label class="field-label" for="nome"><i class="ti ti-user"></i> Nome completo</label>
-            <input type="text" id="nome" placeholder="Seu nome">
-          </div>
-          <div class="field">
-            <label class="field-label" for="contato"><i class="ti ti-device-mobile"></i> E-mail ou WhatsApp</label>
-            <input type="text" id="contato" placeholder="(00) 99999-0000">
+      <div id="identity-wrap" class="identity-wrap">
+        <div class="border-t border-gray-100 dark:border-gray-800 pt-4">
+          <div class="grid grid-cols-2 gap-3">
+            <div class="flex flex-col gap-1.5">
+              <label class="flex items-center gap-1.5 text-[11.5px] font-semibold text-gray-500 dark:text-gray-400" for="nome">
+                <i class="ti ti-user text-xs"></i> Nome completo
+              </label>
+              <input type="text" id="nome" placeholder="Seu nome completo"
+                class="w-full text-[13.5px] bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3.5 py-2.5 text-gray-900 dark:text-gray-100 placeholder-gray-400">
+            </div>
+            <div class="flex flex-col gap-1.5">
+              <label class="flex items-center gap-1.5 text-[11.5px] font-semibold text-gray-500 dark:text-gray-400" for="contato">
+                <i class="ti ti-device-mobile text-xs"></i> E-mail ou WhatsApp
+              </label>
+              <input type="text" id="contato" placeholder="(00) 99999-0000"
+                class="w-full text-[13.5px] bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3.5 py-2.5 text-gray-900 dark:text-gray-100 placeholder-gray-400">
+            </div>
           </div>
         </div>
       </div>
     </div>
 
-    <div class="card">
-      <div class="section-label"><i class="ti ti-tag"></i> Classificação do ocorrido</div>
-      <div class="two-col">
-        <div class="field">
-          <label class="field-label" for="categoria"><i class="ti ti-list"></i> Natureza do desvio / risco</label>
-          <select id="categoria" required>
-            <option value="" disabled selected>Selecione...</option>
-            <option value="grave_iminente">Risco grave e iminente de acidente</option>
-            <option value="direito_recusa">Direito de recusa exercido</option>
-            <option value="epi_epc">Falta ou irregularidade em EPI / EPC</option>
-            <option value="ergonomia">Condições ergonômicas inadequadas</option>
-            <option value="assedio_violencia">Assédio, discriminação ou violência</option>
-            <option value="outros">Outros descumprimentos de NR</option>
-          </select>
+    <!-- Card 2: Classificação -->
+    <div class="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl p-6 mb-3 shadow-sm card-hover animate-fade-up-3">
+      <p class="flex items-center gap-2 font-mono text-[10px] font-semibold tracking-widest uppercase text-gray-400 mb-4">
+        <i class="ti ti-tag"></i> Classificação do ocorrido
+      </p>
+      <div class="grid grid-cols-2 gap-3 mb-5">
+        <div class="flex flex-col gap-1.5">
+          <label class="flex items-center gap-1.5 text-[11.5px] font-semibold text-gray-500 dark:text-gray-400" for="categoria">
+            <i class="ti ti-list text-xs"></i> Natureza do desvio / risco
+          </label>
+          <div class="relative">
+            <select id="categoria" required
+              class="w-full appearance-none text-[13.5px] bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3.5 py-2.5 pr-9 text-gray-900 dark:text-gray-100 cursor-pointer">
+              <option value="" disabled selected>Selecione...</option>
+              <option value="grave_iminente">Risco grave e iminente</option>
+              <option value="direito_recusa">Direito de recusa exercido</option>
+              <option value="epi_epc">Irregularidade em EPI / EPC</option>
+              <option value="ergonomia">Ergonomia inadequada</option>
+              <option value="assedio_violencia">Assédio ou violência</option>
+              <option value="outros">Outros descumprimentos de NR</option>
+            </select>
+            <i class="ti ti-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none text-sm"></i>
+          </div>
         </div>
-        <div class="field">
-          <label class="field-label" for="local"><i class="ti ti-map-pin"></i> Setor / local do fato</label>
-          <input type="text" id="local" required placeholder="Ex: Galpão B, Linha 3">
-          <span class="field-hint">Seja o mais específico possível.</span>
+        <div class="flex flex-col gap-1.5">
+          <label class="flex items-center gap-1.5 text-[11.5px] font-semibold text-gray-500 dark:text-gray-400" for="local">
+            <i class="ti ti-map-pin text-xs"></i> Setor / local do fato
+          </label>
+          <input type="text" id="local" required placeholder="Ex: Galpão B, Linha 3"
+            class="w-full text-[13.5px] bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3.5 py-2.5 text-gray-900 dark:text-gray-100 placeholder-gray-400">
+          <span class="text-[11px] text-gray-400">Seja o mais específico possível.</span>
         </div>
       </div>
-
-      <div class="divider"></div>
-
-      <div class="field-label" style="margin-bottom: 10px;">
-        <i class="ti ti-clock-exclamation"></i> Urgência percebida
-      </div>
-      <div class="urgency-grid">
-        <div class="urgency-opt">
-          <input type="radio" name="urgencia" id="baixa" value="baixa">
-          <label class="urgency-label" for="baixa">
-            <div class="dot" style="background:#10B981;"></div>
-            <div class="u-name">Baixa</div>
-            <div class="u-sub">Melhoria pontual</div>
-          </label>
-        </div>
-        <div class="urgency-opt">
-          <input type="radio" name="urgencia" id="media" value="media" checked>
-          <label class="urgency-label" for="media">
-            <div class="dot" style="background:#F59E0B;"></div>
-            <div class="u-name">Média</div>
-            <div class="u-sub">Requer atenção</div>
-          </label>
-        </div>
-        <div class="urgency-opt">
-          <input type="radio" name="urgencia" id="alta" value="alta">
-          <label class="urgency-label" for="alta">
-            <div class="dot pulse" style="background:#EF4444;"></div>
-            <div class="u-name">Alta</div>
-            <div class="u-sub">Perigo real</div>
-          </label>
+      <div class="border-t border-gray-100 dark:border-gray-800 pt-4">
+        <p class="flex items-center gap-1.5 text-[11.5px] font-semibold text-gray-500 dark:text-gray-400 mb-3">
+          <i class="ti ti-clock-exclamation text-xs"></i> Urgência percebida
+        </p>
+        <div class="grid grid-cols-3 gap-2.5">
+          <div class="urgency-low">
+            <input type="radio" name="urgencia" id="baixa" value="baixa" class="sr-only">
+            <label for="baixa" class="flex flex-col items-center gap-2 py-4 px-2 border-[1.5px] border-gray-200 dark:border-gray-700 rounded-xl cursor-pointer text-center hover:bg-gray-50 dark:hover:bg-gray-800 hover:-translate-y-0.5 active:scale-[0.97] transition-all select-none">
+              <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+              <span class="text-[13px] font-semibold text-gray-800 dark:text-gray-100">Baixa</span>
+              <span class="text-[11px] text-gray-400">Melhoria pontual</span>
+            </label>
+          </div>
+          <div class="urgency-med">
+            <input type="radio" name="urgencia" id="media" value="media" checked class="sr-only">
+            <label for="media" class="flex flex-col items-center gap-2 py-4 px-2 border-[1.5px] border-gray-200 dark:border-gray-700 rounded-xl cursor-pointer text-center hover:bg-gray-50 dark:hover:bg-gray-800 hover:-translate-y-0.5 active:scale-[0.97] transition-all select-none">
+              <span class="w-2.5 h-2.5 rounded-full bg-amber-400"></span>
+              <span class="text-[13px] font-semibold text-gray-800 dark:text-gray-100">Média</span>
+              <span class="text-[11px] text-gray-400">Requer atenção</span>
+            </label>
+          </div>
+          <div class="urgency-high">
+            <input type="radio" name="urgencia" id="alta" value="alta" class="sr-only">
+            <label for="alta" class="flex flex-col items-center gap-2 py-4 px-2 border-[1.5px] border-gray-200 dark:border-gray-700 rounded-xl cursor-pointer text-center hover:bg-gray-50 dark:hover:bg-gray-800 hover:-translate-y-0.5 active:scale-[0.97] transition-all select-none">
+              <span class="w-2.5 h-2.5 rounded-full bg-red-500 pulse-dot"></span>
+              <span class="text-[13px] font-semibold text-gray-800 dark:text-gray-100">Alta</span>
+              <span class="text-[11px] text-gray-400">Perigo real</span>
+            </label>
+          </div>
         </div>
       </div>
     </div>
 
-    <div class="card">
-      <div class="section-label"><i class="ti ti-file-description"></i> Detalhamento da situação</div>
-      <div class="field">
-        <label class="field-label" for="descricao">Descreva o que ocorreu ou o risco identificado</label>
+    <!-- Card 3: Descrição -->
+    <div class="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl p-6 mb-3 shadow-sm card-hover animate-fade-up-4">
+      <p class="flex items-center gap-2 font-mono text-[10px] font-semibold tracking-widest uppercase text-gray-400 mb-4">
+        <i class="ti ti-file-description"></i> Detalhamento da situação
+      </p>
+      <div class="flex flex-col gap-1.5">
+        <label class="text-[11.5px] font-semibold text-gray-500 dark:text-gray-400" for="descricao">
+          Descreva o que ocorreu ou o risco identificado
+        </label>
         <textarea id="descricao" required rows="5" maxlength="1000"
-          placeholder="Detalhe máquinas, comportamentos, falhas de processo, datas ou horários relevantes..."></textarea>
-        <div class="char-counter" id="char-count">0 / 1000</div>
-      </div>
-    </div>
-<div class="card">
-      <div class="section-label"><i class="ti ti-camera"></i> Evidência fotográfica (Opcional)</div>
-      <div class="field">
-        <label class="field-label" for="foto">Selecione uma imagem do risco/fato</label>
-        <input type="file" id="foto" accept="image/*" onchange="mostrarNomeArquivo(this)">
-        <div id="nome-arquivo" style="margin-top: 5px; font-size: 14px; color: #10B981; display: none;"></div>
+          placeholder="Detalhe máquinas, comportamentos, falhas de processo, datas ou horários relevantes..."
+          class="w-full text-[13.5px] bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3.5 py-2.5 text-gray-900 dark:text-gray-100 placeholder-gray-400 resize-y leading-relaxed"></textarea>
+        <p id="char-count" class="text-right text-[11px] text-gray-400 font-mono">0 / 1000</p>
       </div>
     </div>
 
-    <script>
-      function mostrarNomeArquivo(input) {
-        const fileNameDiv = document.getElementById('nome-arquivo');
-        if (input.files && input.files[0]) {
-          fileNameDiv.textContent = "Arquivo selecionado: " + input.files[0].name;
-          fileNameDiv.style.display = 'block';
-        } else {
-          fileNameDiv.style.display = 'none';
-        }
-      }
-    </script>
+    <!-- Card 4: Foto -->
+    <div class="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl p-6 mb-3 shadow-sm card-hover animate-fade-up-5">
+      <div class="flex items-center justify-between mb-4">
+        <p class="flex items-center gap-2 font-mono text-[10px] font-semibold tracking-widest uppercase text-gray-400">
+          <i class="ti ti-camera"></i> Evidência fotográfica
+        </p>
+        <span class="text-[10px] font-medium text-gray-400 bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded-full">Opcional</span>
+      </div>
+      <label id="upload-zone" for="foto"
+        class="upload-zone flex flex-col items-center gap-2 py-8 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-xl cursor-pointer text-center">
+        <i class="ti ti-photo-up text-3xl text-gray-300 dark:text-gray-600 upload-icon transition-colors"></i>
+        <p class="text-sm text-gray-400">Arraste ou <span class="text-red-500 font-semibold">clique para selecionar</span></p>
+        <p class="text-[11px] text-gray-400">PNG, JPG, WEBP — até 10 MB</p>
+        <div id="nome-arquivo" class="hidden text-[12px] font-mono font-semibold text-emerald-500 bg-emerald-50 dark:bg-emerald-950 border border-emerald-200 dark:border-emerald-800 px-3 py-1 rounded-full mt-1"></div>
+      </label>
+      <input type="file" id="foto" accept="image/*" class="hidden">
+    </div>
 
-<script>
-  // Script rápido para mostrar o nome da foto na tela após o usuário selecionar
-  function mostrarNomeArquivo(input) {
-    const fileNameDiv = document.getElementById('nome-arquivo');
-    if (input.files && input.files[0]) {
-      fileNameDiv.textContent = "Arquivo selecionado: " + input.files[0].name;
-      fileNameDiv.style.display = 'block';
-    } else {
-      fileNameDiv.style.display = 'none';
-    }
-  }
-</script>
-
-    <div class="consent-row">
-      <input type="checkbox" id="termos" required>
-      <label class="consent-text" for="termos">
-        Estou ciente de que este relato será integrado ao fluxo de gerenciamento de riscos conforme a <strong>NR-1</strong>, com compromisso corporativo de investigação imediata e proteção total da minha identidade.
+    <!-- Consentimento -->
+    <div id="consent-row" class="flex gap-3 items-start p-4 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl mt-4 shadow-sm">
+      <input type="checkbox" id="termos" required class="w-4 h-4 mt-0.5 accent-red-500 flex-shrink-0 cursor-pointer">
+      <label for="termos" class="text-[12.5px] text-gray-500 dark:text-gray-400 leading-relaxed cursor-pointer">
+        Estou ciente de que este relato será integrado ao fluxo de gerenciamento de riscos conforme a <strong class="text-gray-700 dark:text-gray-200 font-semibold">NR-1</strong>, com compromisso corporativo de investigação imediata e proteção total da minha identidade.
       </label>
     </div>
 
-    <button type="submit" class="submit-btn">
-      <i class="ti ti-send"></i>
-      Protocolar relato de segurança
+    <!-- Botão enviar -->
+    <button type="submit" id="submit-btn"
+      class="submit-btn relative overflow-hidden w-full flex items-center justify-center gap-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl py-4 mt-5 font-bold text-[15px] tracking-wide cursor-pointer hover:-translate-y-0.5 hover:shadow-lg active:scale-[0.98] transition-all disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none border-0">
+      <span id="btn-content" class="flex items-center gap-2.5">
+        <i class="ti ti-send text-base"></i>
+        <span>Protocolar relato de segurança</span>
+      </span>
+      <span id="btn-loading" class="hidden flex items-center gap-2.5">
+        <span class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin-slow"></span>
+        <span>Enviando...</span>
+      </span>
     </button>
-
   </form>
 
-  <div class="success-state" id="success-state" style="display: none;">
-    <div class="success-icon"><i class="ti ti-check"></i></div>
-    <div class="success-title">Relato protocolado com sucesso</div>
-    <p class="success-sub">A equipe de SST/SESMT irá investigar o ocorrido. Sua identidade está protegida.</p>
-    <span class="success-code" id="protocol-code"></span>
-    <button class="reset-btn" onclick="resetForm()">Enviar outro relato</button>
+  <!-- TELA DE SUCESSO -->
+  <div id="success-state" class="success-hidden flex-col items-center bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl py-16 px-6 text-center shadow-sm overflow-hidden gap-4 relative">
+    <div id="success-particles" class="absolute inset-0 pointer-events-none"></div>
+
+    <div class="relative w-20 h-20 flex items-center justify-center mx-auto">
+      <div class="absolute inset-0 rounded-full border-2 border-emerald-400/50 animate-ripple"></div>
+      <div class="w-[72px] h-[72px] flex items-center justify-center rounded-full bg-emerald-500/10 border border-emerald-400/30 animate-pop">
+        <i class="ti ti-check text-3xl text-emerald-500"></i>
+      </div>
+    </div>
+
+    <h2 class="font-bold text-[21px] tracking-tight text-gray-900 dark:text-white">Relato protocolado com sucesso</h2>
+    <p class="text-sm text-gray-500 dark:text-gray-400 leading-relaxed max-w-xs mx-auto">A equipe de SST/SESMT irá investigar o ocorrido. Sua identidade está protegida.</p>
+
+    <span id="protocol-code" class="font-mono text-[13px] font-semibold bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-5 py-2 rounded-full text-gray-700 dark:text-gray-300 tracking-wider"></span>
+
+    <div class="flex flex-wrap gap-2 justify-center">
+      <span class="flex items-center gap-1.5 text-[12px] text-gray-400 bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 px-3 py-1.5 rounded-full">
+        <i class="ti ti-shield-lock text-sm text-emerald-500"></i> Dados protegidos
+      </span>
+      <span class="flex items-center gap-1.5 text-[12px] text-gray-400 bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 px-3 py-1.5 rounded-full">
+        <i class="ti ti-clock text-sm text-emerald-500"></i> Resposta em até 72h
+      </span>
+      <span class="flex items-center gap-1.5 text-[12px] text-gray-400 bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 px-3 py-1.5 rounded-full">
+        <i class="ti ti-eye-off text-sm text-emerald-500"></i> Anonimato garantido
+      </span>
+    </div>
+
+    <button onclick="resetForm()"
+      class="inline-flex items-center gap-2 text-[13.5px] font-bold text-red-500 bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-900 px-5 py-2.5 rounded-xl hover:bg-red-100 dark:hover:bg-red-950 hover:-translate-y-0.5 hover:shadow-md active:scale-[0.97] transition-all cursor-pointer">
+      <i class="ti ti-plus text-sm"></i> Enviar outro relato
+    </button>
   </div>
 
 </div>
-
+<script src="./script.js" defer></script>
 </body>
 </html>
